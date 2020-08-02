@@ -2,7 +2,7 @@
 Repository for Traffic Accident Benchmark for Causality Recognition (ECCV 2020)
 
 ## Overview
-<img width="400px" src="overview.png">
+<img width="480px" src="overview.png">
 
 ## Data Preparation
 
