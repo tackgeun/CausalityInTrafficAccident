@@ -19,12 +19,15 @@ parser.add_argument('--feature', type=str, default="i3d-rgb-x8")
 
 parser.add_argument('--input_size', type=int, default=1024)
 parser.add_argument('--hidden_size', type=int, default=256)
-parser.add_argument('--num_layers', type=int, default=2)
-parser.add_argument('--num_stages', type=int, default=2)
 
 parser.add_argument('--loss_type', type=str, default='CrossEntropy')
+parser.add_argument('--num_experiments', type=int, default=1)
+parser.add_argument('--num_epochs', type=int, default=2000)
+parser.add_argument('--optimizer', type=str, default='adam')
 parser.add_argument('--learning_rate', type=float, default=1e-4)
+parser.add_argument('--weight_decay', type=float, default=1e-2)
 parser.add_argument('--use_dropout', type=float, default=0.5)
+
 parser.add_argument('--architecture_type', type=str, default='TSN')
 parser.add_argument('--consensus_type', type=str, default='average')
 parser.add_argument('--num_segments', type=int, default=4)
@@ -32,11 +35,6 @@ parser.add_argument('--new_length', type=int, default=1)
 
 parser.add_argument('--feed_type', type=str, default='classification')
 parser.add_argument('--logdir', type=str, default='runs')
-parser.add_argument('--num_experiments', type=int, default=1)
-parser.add_argument('--num_epochs', type=int, default=2000)
-parser.add_argument('--display_period', type=int, default=201)
-parser.add_argument('--optimizer', type=str, default='adam')
-parser.add_argument('--weight_decay', type=float, default=1e-2)
 
 args = parser.parse_args()
 
@@ -57,12 +55,12 @@ dataloader_test = DataLoader(dataset_test, batch_size=p['batch_size'])
 print("train/validation/test dataset size", \
         len(dataset_train), len(dataset_val), len(dataset_test))
 
+
 #################################
 # logging directory
 #################################
-arch_name = p['architecture_type']
-expdir = '%s-%s-batch%d-layer%d-embed-%d' % \
-        (arch_name, p['feature'], p['batch_size'], p['num_layers'], p['hidden_size'])
+expdir = '%s-%s-batch%d-embed-%d' % \
+        (p['architecture_type'], p['feature'], p['batch_size'], p['hidden_size'])
 
 if(p['use_dropout'] > 0.0):
     expdir = expdir + '-dropout%.1f' % p['use_dropout']
@@ -95,7 +93,7 @@ for di in range(0, args.num_experiments):
         stats_val = process_epoch('val', epoch, p, dataloader_val, model)
         
         perf_val = stats_val['top1.cause'] + stats_val['top1.effect']
-        perf_val_aux = stats_val['top5.cause'] + stats_val['top2.effect']
+        perf_val_aux = stats_val['top2.cause'] + stats_val['top2.effect']
         if(perf_val >= max_perf_val):
             if(perf_val_aux >= max_perf_aux):
                 max_perf_val = perf_val

@@ -67,13 +67,13 @@ class CausalityInTrafficAccident(Dataset):
 
         if('both' in self.feature):
             self.use_flow = True
+            self.use_rgb = True
         elif('rgb' in self.feature):
             self.use_flow = False
+            self.use_rgb = True
 
-        self.stride = 'x8'
-        self.root_dir = DATA_ROOT + 'i3d-feature-fps25-shot/%s/' % self.stride
         
-        dv = 'Mar9th'
+        dv = p['dataset_ver']
         self.anno_dir = DATA_ROOT + 'annotation-%s-25fps.pkl' % dv
         
         with open(self.anno_dir, 'rb') as f:
@@ -95,7 +95,8 @@ class CausalityInTrafficAccident(Dataset):
                 torch.manual_seed(p['use_randperm'])
                 indices = torch.randperm(len(self.annos))
                 L = indices.numpy().tolist()
-                if(dv == 'Nov3rd' or dv == 'Nov3th'):
+                #if(dv == 'Nov3rd' or dv == 'Nov3th'):
+                if(self.feed_type == 'detection' or self.feed_type == 'multi-label'):
                     feat_rgb = feat_rgb[indices, :]
                     if(self.use_flow):
                         feat_flow = feat_flow[indices, :]
@@ -105,7 +106,8 @@ class CausalityInTrafficAccident(Dataset):
                         if(self.use_flow):
                             feat_flow_flip = feat_flow_flip[indices, :]
 
-                elif(dv == 'Mar9th'):
+                #elif(dv == 'Mar9th'):
+                elif(self.feed_type == 'classification'):
                     indices = indices.tolist()
                     remap = lambda I,arr: [arr[i] for i in I]
                     feat_rgb = remap(indices, feat_rgb)
@@ -140,7 +142,7 @@ class CausalityInTrafficAccident(Dataset):
             #     if(self.use_flow):
             #         self.feat_flow_flip = feat_flow_flip[start_idx:end_idx, :, :]
 
-        if(self.feed_type == 'detection' or self.feed_type == 'proposal'):
+        if(self.feed_type == 'detection'):
             self.positive_thres = p['positive_thres']
             scales = torch.Tensor((p['proposal_scales'])).unsqueeze(0).unsqueeze(1) # 1 x scale x 1
             scales = scales / self.seq_length * self.vid_length
@@ -181,10 +183,10 @@ class CausalityInTrafficAccident(Dataset):
     def __getitem__(self, idx):
         if self.feed_type == 'detection':
             return self.feed_detections(idx)
-        elif self.feed_type == 'proposal':
-            return self.feed_proposals(idx)
         elif self.feed_type == 'classification':
             return self.feed_classification(idx)
+        elif self.feed_type == 'multi-label':
+            return self.feed_multi_label(idx)
 
     def get_feature(self, idx):
         if(self.use_flip and random.random() > 0.5):
@@ -218,48 +220,13 @@ class CausalityInTrafficAccident(Dataset):
 
         return cause_loc, effect_loc, ious, labels
 
-    # # Binary IoUs
-    # def get_prop_labels(self, idx):
-    #     annos = self.annos[idx]
-    #     cause_loc = torch.Tensor([annos[1][1], annos[1][2]])
-    #     effect_loc = torch.Tensor([annos[2][1], annos[2][2]])
-
-    #     iou_cause = self.compute_ious(self.boxes, annos[1][1:3])
-    #     iou_effect = self.compute_ious(self.boxes, annos[2][1:3])
-
-    #     iou_cat = torch.stack([iou_cause, iou_effect], dim=0)
-    #     iou_cat, _ = torch.max(iou_cat, dim=0)
-    #     ious = torch.stack([self.iou_bg, iou_cat], dim=0)
-    #     _, labels = torch.max(ious, dim=0)
-
-    #     return cause_loc, effect_loc, ious, labels
-
-    # [BG, cause, effect] IoU
-    def get_prop_labels(self, idx):
-        annos = self.annos[idx]
-        cause_loc = torch.Tensor([annos[1][1], annos[1][2]])
-        effect_loc = torch.Tensor([annos[2][1], annos[2][2]])
-
-        iou_cause = self.compute_ious(self.boxes, annos[1][1:3])
-        iou_effect = self.compute_ious(self.boxes, annos[2][1:3])
-
-        ious = torch.stack([self.iou_bg, iou_cause, iou_effect], dim=0)
-        _, labels = torch.max(ious, dim=0)               
-        labels = (labels > 0.5).long()
-
-        return cause_loc, effect_loc, ious, labels
-
     # construct labels for SSD detector
     def feed_detections(self, idx):
-        rgb_feat, flow_feat = self.get_feature(idx)
+        try:
+            rgb_feat, flow_feat = self.get_feature(idx)
+        except:
+            print('exception', idx)
         cause_loc, effect_loc, ious, labels = self.get_det_labels(idx)
-
-        return rgb_feat, flow_feat, cause_loc, effect_loc, labels, ious
-
-    # construct labels for SST proposal
-    def feed_proposals(self, idx):
-        rgb_feat, flow_feat = self.get_feature(idx)
-        cause_loc, effect_loc, ious, labels = self.get_prop_labels(idx)
 
         return rgb_feat, flow_feat, cause_loc, effect_loc, labels, ious
 
@@ -342,3 +309,100 @@ class CausalityInTrafficAccident(Dataset):
         return rgb_feat, cause_label, effect_label
         #return feat, label
 
+
+    def feed_multi_label(self, idx):
+        annos = self.annos[idx]
+        vid_name = annos[0]
+        seq_length = self.seq_length
+        vid_length = self.vid_length
+
+        #########
+        # input #
+        #########
+        # rgb = torch.load(self.root_dir + 'rgb%s.pt' % vid_name).transpose(0,1)
+        # rgb_feat = torch.zeros(seq_length, rgb.size(1))
+        # rgb_feat[0:rgb.size(0), :] = rgb
+
+        if(self.use_flip and random.random() > 0.5):
+            if(self.use_rgb):
+                rgb_feat = self.feat_rgb_flip[idx, :, :]
+            else:
+                rgb_feat = torch.zeros(0)
+
+            if(self.use_flow):
+                # flow = torch.load(self.root_dir + 'flow%s.pt' % vid_name).transpose(0,1)
+                # flow_feat = torch.zeros(seq_length, flow.size(1))
+                # flow_feat[0:flow.size(0), :] = flow
+                flow_feat = self.feat_flow_flip[idx, :, :]
+            else:
+                flow_feat = torch.zeros(0)
+        else:
+            if(self.use_rgb):
+                rgb_feat = self.feat_rgb[idx, :, :]
+            else:
+                rgb_feat = torch.zeros(0)
+
+            if(self.use_flow):
+                # flow = torch.load(self.root_dir + 'flow%s.pt' % vid_name).transpose(0,1)
+                # flow_feat = torch.zeros(seq_length, flow.size(1))
+                # flow_feat[0:flow.size(0), :] = flow
+                flow_feat = self.feat_flow[idx, :, :]
+            else:
+                flow_feat = torch.zeros(0)
+
+        ##########
+        # labels #
+        ##########
+        cause_loc = torch.Tensor([annos[1][1], annos[1][2]])/vid_length
+        effect_loc = torch.Tensor([annos[2][1], annos[2][2]])/vid_length
+        #causality_loc = torch.Tensor([annos[1][1], annos[1][2], annos[2][1], annos[2][2]])/vid_length
+        
+        ################################################
+        # cause label for attention calibration label 
+        ################################################        
+        cause_start_time = annos[1][1]/vid_length*seq_length
+        cause_end_time = annos[1][2]/vid_length*seq_length
+        cause_start_idx = int(round(cause_start_time))
+        cause_end_idx = int(round(cause_end_time))+1
+        if(cause_end_idx > seq_length):
+            cause_end_idx = seq_length
+        
+
+        ################################################
+        # effect label for attention calibration label 
+        ################################################        
+        effect_start_time = annos[2][1]/vid_length*seq_length
+        effect_end_time = annos[2][2]/vid_length*seq_length
+
+        effect_start_idx = int(round(effect_start_time))
+        effect_end_idx = int(round(effect_end_time)) + 1
+        if(effect_end_idx > seq_length):
+            effect_end_idx = seq_length
+        
+
+        ######################################################
+        # cause-effect label for attention calibration label 
+        ######################################################
+        
+
+        causality_mask = torch.zeros(seq_length).long()
+        if(int(math.floor(cause_end_time) == int(math.floor(effect_start_time)))):
+            effect_portion = math.ceil(effect_start_time) - effect_start_time
+            cause_portion = cause_end_time - math.floor(cause_end_time)
+            if(effect_portion > cause_portion):
+                effect_start_idx = int(math.floor(cause_end_time))
+                cause_end_idx = effect_start_idx
+            else:
+                cause_end_idx = int(math.floor(cause_end_time)) + 1
+                effect_start_idx = cause_end_idx
+
+        #if(self.pred_type == 'both'):
+        causality_mask[cause_start_idx:cause_end_idx] = 1
+        causality_mask[effect_start_idx:effect_end_idx] = 2
+        
+
+
+        # label = torch.Tensor([annos[1][3], annos[2][3]])
+        # return rgb_feat, flow_feat, causality_mask, cause_loc, effect_loc, label, annos[0]
+        # else:
+        return rgb_feat, flow_feat, causality_mask, cause_loc, effect_loc
