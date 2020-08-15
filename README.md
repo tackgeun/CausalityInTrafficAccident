@@ -1,11 +1,11 @@
-# Causality In Traffic Accident
-Repository for Traffic Accident Benchmark for Causality Recognition, ECCV 20 (Under-construction)
+# Causality In Traffic Accident (Under Construction)
+Repository for Traffic Accident Benchmark for Causality Recognition (ECCV 2020)
 
 ## Overview
 <img width="480px" src="overview.png">
 
 ## Data Preparation
-
+[Details of dataset construction](DATASET.md)
 
 ## Benchmark
 ### Cause and Effect Event Classification
@@ -27,8 +27,11 @@ python train_localization.py --architecture_type bi-SST
 python train_localization.py --architecture_type SSTCN-SST
 ```
 
-- Proposal-based Action Detection
-
+- Proposal-based Action Detection (Not supported yet)
+```
+python train_localization.py --architecture_type naive-conv-R-C3D
+python train_localization.py --architecture_type SSTCN-R-C3D
+```
 
 - Action Segmentation
 ```
