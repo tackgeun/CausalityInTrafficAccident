@@ -18,89 +18,58 @@ from models import *
 import pdb
 
 parser = argparse.ArgumentParser(description='Training Framework for Temporal Cause and Effect Localization')
-parser.add_argument('--batch_size', type=int, default=16)
+
+# Dataloader
+parser.add_argument('--dataset_ver', type=str, default='Mar9th')
+parser.add_argument('--use_flip', type=bool, default=True)
 parser.add_argument('--feature', type=str, default="i3d-rgb-x8")
-
 parser.add_argument('--input_size', type=int, default=1024)
-parser.add_argument('--hidden_size', type=int, default=128)
-parser.add_argument('--num_layers', type=int, default=2)
-parser.add_argument('--num_stages', type=int, default=2)
 
-parser.add_argument('--sst_rnn_type', type=str, default='GRU')
-parser.add_argument('--loss_type', type=str, default='CrossEntropy')
-
-parser.add_argument('--learning_rate', type=float, default=1e-4)
-
-parser.add_argument('--use_dropout', type=float, default=0.5)
-
+# Architecture
 parser.add_argument('--architecture_type', type=str, default='forward-SST', choices=['forward-SST', 'backward-SST', 'bi-SST', 'SSTCN-SST', 'SSTCN-R-C3D', 'SSTCN-Segmentation', 'MSTCN-Segmentation'])
+#parser.add_argument('--feed_type', type=str, default='detection')
 parser.add_argument('--prediction_type', type=str, default="both")
 
 # Action Detection (SST)
 parser.add_argument('--positive_thres', type=float, default=0.4)
-parser.add_argument('--feed_type', type=str, default='detection')
 # parser.add_argument('--num_scales', type=int, default=12)
 # parser.add_argument('--start_scale', type=float, default=3.0)
 # parser.add_argument('--end_scale', type=float, default=32.0)
+parser.add_argument('--sst_rnn_type', type=str, default='GRU')
 parser.add_argument('--sst_K', type=int, default=64)
 
 # Action Segmentation (SSTCN, MSTCN)
+parser.add_argument('--num_layers', type=int, default=2)
+parser.add_argument('--num_stages', type=int, default=2)
 parser.add_argument('--w1', type=float, default=1.0)
 parser.add_argument('--w2', type=float, default=1.0)
 parser.add_argument('--w3', type=float, default=1.0)
 parser.add_argument('--w4', type=float, default=1.0)
 parser.add_argument('--mse_tau', type=float, default=4.0)
 
-# dataloader
-parser.add_argument('--dataset_ver', type=str, default='Nov3th')
-parser.add_argument('--use_flip', type=bool, default=True)
-
-parser.add_argument('--logdir', type=str, default='runs')
-
-# parser.add_argument('--num_experiments', type=int, default=5)
-# parser.add_argument('--num_epochs', type=int, default=200)
+# Optimization
+parser.add_argument("--random_seed", type=int, default=0)
 parser.add_argument('--num_experiments', type=int, default=1)
 parser.add_argument('--num_epochs', type=int, default=200)
-parser.add_argument('--display_period', type=int, default=1)
+
+parser.add_argument('--batch_size', type=int, default=16)
+parser.add_argument('--learning_rate', type=float, default=1e-4)
+parser.add_argument('--use_dropout', type=float, default=0.5)
+
 parser.add_argument('--optimizer', type=str, default='adam')
 parser.add_argument('--weight_decay', type=float, default=1e-2)
 
-parser.add_argument("--random_seed", type=int, default=0)
+parser.add_argument('--hidden_size', type=int, default=128)
+parser.add_argument('--loss_type', type=str, default='CrossEntropy')
+
+# Logging and Display
+parser.add_argument('--display_period', type=int, default=1)
+parser.add_argument('--logdir', type=str, default='runs')
+
 
 args = parser.parse_args()
 
-# if(args.dataset_ver == 'Nov3th'):
-#     args.train_start = 0
-#     args.train_end   = 1355
-#     args.val_start   = args.train_end
-#     args.val_end     = args.train_end + 290
-#     args.test_start  = args.val_end
-#     args.test_end    = args.val_end + 290
-
 p = vars(args)
-
-# p['feature'] = args.feature
-# p['batch_size'] = args.batch_size
-# p['hidden_size'] = args.hidden_size
-# p['dilation'] = args.dilation
-# p['num_layers'] = args.num_layers
-# p['num_output'] = args.num_output
-# p['share_type'] = args.share_type
-# p['use_dropout'] = args.use_dropout
-
-# p['dataset_ver'] = args.dataset_ver
-# p['condition-type'] = args.condition_type
-# p['architecture-type'] = args.architecture_type
-# p['prediction_type'] = args.prediction_type
-
-# p['loss_type'] = args.loss_type
-
-# p['use_flip'] = args.use_flip
-
-# p['use_randperm'] = args.use_randperm
-
-# p['feed_type'] = 'ssd'
-# p['positive_thres'] = args.positive_thres
 
 p['len_sequence'] = 208
 p['fps'] = 25
@@ -111,17 +80,10 @@ if('Segmentation' in p['architecture_type']):
 elif('SST' in p['architecture_type']):
     p['feed_type'] = 'detection'
 
-# num_scales = args.num_scales
-# end_scale = args.end_scale
-# start_scale = args.start_scale
-# a = 10 ** (math.log10(end_scale/start_scale)/(num_scales-1))
-# p['proposal_scales'] = [start_scale * (a ** i) for i in range(0, num_scales)] # in seconds
-# p["sst_K"] = len(p['proposal_scales'])
-
-
-p['sst_dt'] = p['vid_length'] / p['len_sequence']
-p["sst_K"] = args.sst_K
-p['proposal_scales'] = [float(i+1) * p['sst_dt'] for i in range(0, p["sst_K"])] # in seconds
+if('SST' in p['architecture_type']):
+    p['sst_dt'] = p['vid_length'] / p['len_sequence']
+    p["sst_K"] = args.sst_K
+    p['proposal_scales'] = [float(i+1) * p['sst_dt'] for i in range(0, p["sst_K"])] # in seconds
 
 if('MSTCN' in p['architecture_type']):
     p['config_layers'] = [args.num_layers for _ in range(0, args.num_stages)]
@@ -130,15 +92,7 @@ p['device'] = 0
 
 print(p)
 
-if(args.random_seed > 0):
-    torch.manual_seed(args.random_seed)
-    np.random.seed(args.random_seed)
-    random.seed(args.random_seed)
-    torch.cuda.manual_seed(args.random_seed)
-    torch.cuda.manual_seed_all(args.random_seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    
+# Dataset
 dataset_train = CausalityInTrafficAccident(p, split='train')
 dataset_val   = CausalityInTrafficAccident(p, split='val', test_mode=True)
 dataset_test  = CausalityInTrafficAccident(p, split='test', test_mode=True)
@@ -151,10 +105,17 @@ dataloader_test = DataLoader(dataset_test, batch_size=p['batch_size'])
 print("train/validation/test dataset size", \
         len(dataset_train), len(dataset_val), len(dataset_test))
 
-###################################
-# SST
-###################################
+# Reproducibility
+if(args.random_seed > 0):
+    torch.manual_seed(args.random_seed)
+    np.random.seed(args.random_seed)
+    random.seed(args.random_seed)
+    torch.cuda.manual_seed(args.random_seed)
+    torch.cuda.manual_seed_all(args.random_seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
+# Logging
 arch_name = p['architecture_type']
 expdir = '%s-%s-batch%d-layer%d-embed-%d' % \
         (arch_name, p['feature'], p['batch_size'], p['num_layers'], p['hidden_size'])
@@ -175,21 +136,9 @@ exp_stats = dict()
 for key in ['cause-thr-test', 'effect-thr-test', 'cause-thr-val', 'effect-thr-val']:
     exp_stats[key] = []
 
-
-
-# labels = []
-# for i_batch, v in enumerate(dataloader_train):
-#     if('SST' in p['architecture_type']):
-#         (_, _, _, _, label, _) = v
-#         labels.append(label)
-# labels = torch.cat(labels)
-
-# print("labels size", labels.size())
-
-# for i, s in zip(range(0, label.size(2)), p['proposal_scales']):
-#     print('proposal scale : {}'.format(s), labels[:, :, i].sum())
-
-# pdb.set_trace()
+###################################
+# Main Training Loop
+###################################
 
 for di in range(0, args.num_experiments):
     model = []
@@ -221,10 +170,6 @@ for di in range(0, args.num_experiments):
     max_perf_val = 0.0
 
     # loss function
-    # p['criterion_cause'] = WeightedBCE().cuda(device)
-    # p['criterion_effect'] = WeightedBCE().cuda(device)
-
-    # p['criterion'] = WeightedCE().cuda(device)
     if(args.loss_type == 'CrossEntropy'):
         p['criterion'] = CrossEntropy().cuda(device)
     elif(args.loss_type == 'WeightedCE'):
@@ -270,7 +215,8 @@ for di in range(0, args.num_experiments):
                                                                                 (stats['cause-iou-thr-val'][4]+stats['effect-iou-thr-val'][4])/2,
                                                                                 (stats['max-cause-iou-thr-val'][4]+stats['max-effect-iou-thr-val'][4])/2
                                                                             ))
-            print('train/val loss %.4f %.4f' % (float(train_loss['w_all']), float(val_loss['w_all'])))
+            #print('train/val loss %.4f %.4f' % (float(train_loss['w_all']), float(val_loss['w_all'])))
+            print('train/val loss %.4f %.4f' % (float(train_loss['loss']), float(val_loss['loss'])))
 
     # evaluated the best validation model on test set.
     state_dict = torch.load(logdir + 'model_max.pth')

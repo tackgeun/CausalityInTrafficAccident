@@ -6,7 +6,14 @@ Download two RGB features extracted from i3d
 - [flipped-RGB](https://www.dropbox.com/s/0kiikl2yjco0xvn/i3d-rgb-flip-fps25-Mar9th.pt?dl=0)
 
 ## Statistics of dataset
+### Semantic Taxonomy for Cause and Effect Events
+<img width="480px" src="labels.png">
 
-## Semantic Taxonomy
+### Temporal Intervals
+<img width="240px" src="cause_duration.png">
+<img width="240px" src="effect_duration.png">
 
-## Temporal Intervals
+## The Other Details
+Annotation tool
+- We use [BeaverDam](https://github.com/antingshen/BeaverDam) to annotate cause and effect event in an accident video.
+

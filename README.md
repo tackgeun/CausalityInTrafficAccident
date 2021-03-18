@@ -27,16 +27,14 @@ python train_localization.py --architecture_type bi-SST
 python train_localization.py --architecture_type SSTCN-SST
 ```
 
-- Proposal-based Action Detection (Not supported yet)
-```
-python train_localization.py --architecture_type naive-conv-R-C3D
-python train_localization.py --architecture_type SSTCN-R-C3D
-```
-
 - Action Segmentation
 ```
 python train_localization.py --architecture_type SSTCN-Segmentation
 python train_localization.py --architecture_type MSTCN-Segmentation
 ```
 
-- 
+- Proposal-based Action Detection (Not supported yet)
+```
+python train_localization.py --architecture_type naive-conv-R-C3D
+python train_localization.py --architecture_type SSTCN-R-C3D
+```- 
