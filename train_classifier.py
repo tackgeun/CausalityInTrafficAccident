@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from utils import *
-from datasets import CausalityInTrafficAccident
+from dataset.loader import CausalityInTrafficAccident
 from tensorboardX import SummaryWriter
 from models import TSN
 
@@ -33,11 +33,23 @@ parser.add_argument('--consensus_type', type=str, default='average')
 parser.add_argument('--num_segments', type=int, default=4)
 parser.add_argument('--new_length', type=int, default=1)
 
+parser.add_argument('--dataset_ver', type=str, default='Mar9th')
 parser.add_argument('--feed_type', type=str, default='classification')
 parser.add_argument('--logdir', type=str, default='runs')
 
+parser.add_argument("--random_seed", type=int, default=0)
+
 args = parser.parse_args()
 
+if(args.random_seed > 0):
+    torch.manual_seed(args.random_seed)
+    np.random.seed(args.random_seed)
+    random.seed(args.random_seed)
+    torch.cuda.manual_seed(args.random_seed)
+    torch.cuda.manual_seed_all(args.random_seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    
 p = vars(args)
 print(args)
 

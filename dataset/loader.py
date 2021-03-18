@@ -37,7 +37,7 @@ class CausalityInTrafficAccident(Dataset):
     """Causality In Traffic Accident Dataset."""
     
     def __init__(self, p, split, test_mode=False):
-        DATA_ROOT = '../causal-sst/dataset/'
+        DATA_ROOT = './dataset/'
         self.feature = p['feature']
         self.split = split
         if split == 'train':
@@ -52,6 +52,7 @@ class CausalityInTrafficAccident(Dataset):
 
         self.use_flip = True
 
+        self.feature_dim = p['input_size']
         self.seq_length = 208
         self.fps = 25
         self.vid_length = self.seq_length * 8 / self.fps
@@ -72,7 +73,6 @@ class CausalityInTrafficAccident(Dataset):
             self.use_flow = False
             self.use_rgb = True
 
-        
         dv = p['dataset_ver']
         self.anno_dir = DATA_ROOT + 'annotation-%s-25fps.pkl' % dv
         
@@ -95,31 +95,43 @@ class CausalityInTrafficAccident(Dataset):
                 torch.manual_seed(p['use_randperm'])
                 indices = torch.randperm(len(self.annos))
                 L = indices.numpy().tolist()
-                #if(dv == 'Nov3rd' or dv == 'Nov3th'):
-                if(self.feed_type == 'detection' or self.feed_type == 'multi-label'):
-                    feat_rgb = feat_rgb[indices, :]
-                    if(self.use_flow):
-                        feat_flow = feat_flow[indices, :]
+                # #if(dv == 'Nov3rd' or dv == 'Nov3th'):
+                # if(self.feed_type == 'detection' or self.feed_type == 'multi-label'):
+                #     feat_rgb = feat_rgb[indices, :]
+                #     if(self.use_flow):
+                #         feat_flow = feat_flow[indices, :]
                     
-                    if(self.use_flip):
-                        feat_rgb_flip = feat_rgb_flip[indices, :]
-                        if(self.use_flow):
-                            feat_flow_flip = feat_flow_flip[indices, :]
+                #     if(self.use_flip):
+                #         feat_rgb_flip = feat_rgb_flip[indices, :]
+                #         if(self.use_flow):
+                #             feat_flow_flip = feat_flow_flip[indices, :]
 
-                #elif(dv == 'Mar9th'):
-                elif(self.feed_type == 'classification'):
-                    indices = indices.tolist()
-                    remap = lambda I,arr: [arr[i] for i in I]
-                    feat_rgb = remap(indices, feat_rgb)
-                    if(self.use_flow):
-                        feat_flow = remap(indices, feat_flow)
+                # #elif(dv == 'Mar9th'):
+                # elif(self.feed_type == 'classification'):
+                #     indices = indices.tolist()
+                #     remap = lambda I,arr: [arr[i] for i in I]
+                #     feat_rgb = remap(indices, feat_rgb)
+                #     if(self.use_flow):
+                #         feat_flow = remap(indices, feat_flow)
                     
-                    if(self.use_flip):
-                        feat_rgb_flip = remap(indices, feat_rgb_flip)
-                        if(self.use_flow):
-                            feat_flow_flip = remap(indices, feat_flow_flip)
-                else:
-                    assert(False)
+                #     if(self.use_flip):
+                #         feat_rgb_flip = remap(indices, feat_rgb_flip)
+                #         if(self.use_flow):
+                #             feat_flow_flip = remap(indices, feat_flow_flip)
+                # else:
+                #     assert(False)
+                #if(dv == 'Nov3rd' or dv == 'Nov3th'):
+
+                indices = indices.tolist()
+                remap = lambda I,arr: [arr[i] for i in I]
+                feat_rgb = remap(indices, feat_rgb)
+                if(self.use_flow):
+                    feat_flow = remap(indices, feat_flow)
+                
+                if(self.use_flip):
+                    feat_rgb_flip = remap(indices, feat_rgb_flip)
+                    if(self.use_flow):
+                        feat_flow_flip = remap(indices, feat_flow_flip)
                 
                 self.annos = [self.annos[L[l]] for l in range(0, len(self.annos))]
 
@@ -188,19 +200,47 @@ class CausalityInTrafficAccident(Dataset):
         elif self.feed_type == 'multi-label':
             return self.feed_multi_label(idx)
 
+    # def get_feature(self, idx):
+    #     if(self.use_flip and random.random() > 0.5):
+    #         rgb_feat = self.feat_rgb_flip[idx, :, :]
+    #         if(self.use_flow):
+    #             flow_feat = self.feat_flow_flip[idx, :, :]
+    #         else:
+    #             flow_feat = torch.zeros(0)
+    #     else:
+    #         rgb_feat = self.feat_rgb[idx, :, :]
+    #         if(self.use_flow):
+    #             flow_feat = self.feat_flow[idx, :, :]
+    #         else:
+    #             flow_feat = torch.zeros(0)
+
+    #     return rgb_feat, flow_feat      
+
     def get_feature(self, idx):
+        # get feature from file database
         if(self.use_flip and random.random() > 0.5):
-            rgb_feat = self.feat_rgb_flip[idx, :, :]
+            if(self.use_rgb):
+                _rgb_feat = self.feat_rgb_flip[idx]
             if(self.use_flow):
-                flow_feat = self.feat_flow_flip[idx, :, :]
-            else:
-                flow_feat = torch.zeros(0)
+                _flow_feat = self.feat_flow_flip[idx, :, :]
         else:
-            rgb_feat = self.feat_rgb[idx, :, :]
+            if(self.use_rgb):
+                _rgb_feat = self.feat_rgb[idx]
             if(self.use_flow):
-                flow_feat = self.feat_flow[idx, :, :]
-            else:
-                flow_feat = torch.zeros(0)
+                _flow_feat = self.feat_flow[idx, :, :]
+        
+        # zero-padding
+        if(self.use_rgb):
+            rgb_feat = torch.zeros(self.seq_length, self.feature_dim)        
+            rgb_feat[0:_rgb_feat.size(0), :] = _rgb_feat
+        else:
+            rgb_feat = torch.zeros(0)
+
+        if(self.use_flow):
+            flow_feat = torch.zeros(self.seq_length, self.feature_dim)
+            flow_feat[0:_flow_feat.size(0), :] = _flow_feat
+        else:
+            flow_feat = torch.zeros(0)
 
         return rgb_feat, flow_feat      
 
@@ -323,32 +363,33 @@ class CausalityInTrafficAccident(Dataset):
         # rgb_feat = torch.zeros(seq_length, rgb.size(1))
         # rgb_feat[0:rgb.size(0), :] = rgb
 
-        if(self.use_flip and random.random() > 0.5):
-            if(self.use_rgb):
-                rgb_feat = self.feat_rgb_flip[idx, :, :]
-            else:
-                rgb_feat = torch.zeros(0)
+        rgb_feat, flow_feat = self.get_feature(idx)
+        # if(self.use_flip and random.random() > 0.5):
+        #     if(self.use_rgb):
+        #         rgb_feat = self.feat_rgb_flip[idx, :, :]
+        #     else:
+        #         rgb_feat = torch.zeros(0)
 
-            if(self.use_flow):
-                # flow = torch.load(self.root_dir + 'flow%s.pt' % vid_name).transpose(0,1)
-                # flow_feat = torch.zeros(seq_length, flow.size(1))
-                # flow_feat[0:flow.size(0), :] = flow
-                flow_feat = self.feat_flow_flip[idx, :, :]
-            else:
-                flow_feat = torch.zeros(0)
-        else:
-            if(self.use_rgb):
-                rgb_feat = self.feat_rgb[idx, :, :]
-            else:
-                rgb_feat = torch.zeros(0)
+        #     if(self.use_flow):
+        #         # flow = torch.load(self.root_dir + 'flow%s.pt' % vid_name).transpose(0,1)
+        #         # flow_feat = torch.zeros(seq_length, flow.size(1))
+        #         # flow_feat[0:flow.size(0), :] = flow
+        #         flow_feat = self.feat_flow_flip[idx, :, :]
+        #     else:
+        #         flow_feat = torch.zeros(0)
+        # else:
+        #     if(self.use_rgb):
+        #         rgb_feat = self.feat_rgb[idx, :, :]
+        #     else:
+        #         rgb_feat = torch.zeros(0)
 
-            if(self.use_flow):
-                # flow = torch.load(self.root_dir + 'flow%s.pt' % vid_name).transpose(0,1)
-                # flow_feat = torch.zeros(seq_length, flow.size(1))
-                # flow_feat[0:flow.size(0), :] = flow
-                flow_feat = self.feat_flow[idx, :, :]
-            else:
-                flow_feat = torch.zeros(0)
+        #     if(self.use_flow):
+        #         # flow = torch.load(self.root_dir + 'flow%s.pt' % vid_name).transpose(0,1)
+        #         # flow_feat = torch.zeros(seq_length, flow.size(1))
+        #         # flow_feat[0:flow.size(0), :] = flow
+        #         flow_feat = self.feat_flow[idx, :, :]
+        #     else:
+        #         flow_feat = torch.zeros(0)
 
         ##########
         # labels #
@@ -399,8 +440,6 @@ class CausalityInTrafficAccident(Dataset):
         #if(self.pred_type == 'both'):
         causality_mask[cause_start_idx:cause_end_idx] = 1
         causality_mask[effect_start_idx:effect_end_idx] = 2
-        
-
 
         # label = torch.Tensor([annos[1][3], annos[2][3]])
         # return rgb_feat, flow_feat, causality_mask, cause_loc, effect_loc, label, annos[0]

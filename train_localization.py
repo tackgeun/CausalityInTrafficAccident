@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import copy
 
-from datasets import CausalityInTrafficAccident
+from dataset.loader import CausalityInTrafficAccident
 
 from utils import *
 from tensorboardX import SummaryWriter
@@ -32,7 +32,6 @@ parser.add_argument('--loss_type', type=str, default='CrossEntropy')
 parser.add_argument('--learning_rate', type=float, default=1e-4)
 
 parser.add_argument('--use_dropout', type=float, default=0.5)
-
 
 parser.add_argument('--architecture_type', type=str, default='forward-SST', choices=['forward-SST', 'backward-SST', 'bi-SST', 'SSTCN-SST', 'SSTCN-R-C3D', 'SSTCN-Segmentation', 'MSTCN-Segmentation'])
 parser.add_argument('--prediction_type', type=str, default="both")
@@ -62,9 +61,11 @@ parser.add_argument('--logdir', type=str, default='runs')
 # parser.add_argument('--num_epochs', type=int, default=200)
 parser.add_argument('--num_experiments', type=int, default=1)
 parser.add_argument('--num_epochs', type=int, default=200)
-parser.add_argument('--display_period', type=int, default=201)
+parser.add_argument('--display_period', type=int, default=1)
 parser.add_argument('--optimizer', type=str, default='adam')
 parser.add_argument('--weight_decay', type=float, default=1e-2)
+
+parser.add_argument("--random_seed", type=int, default=0)
 
 args = parser.parse_args()
 
@@ -101,7 +102,6 @@ p = vars(args)
 # p['feed_type'] = 'ssd'
 # p['positive_thres'] = args.positive_thres
 
-
 p['len_sequence'] = 208
 p['fps'] = 25
 p['vid_length'] = p['len_sequence'] * 8 / p['fps']
@@ -130,6 +130,15 @@ p['device'] = 0
 
 print(p)
 
+if(args.random_seed > 0):
+    torch.manual_seed(args.random_seed)
+    np.random.seed(args.random_seed)
+    random.seed(args.random_seed)
+    torch.cuda.manual_seed(args.random_seed)
+    torch.cuda.manual_seed_all(args.random_seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    
 dataset_train = CausalityInTrafficAccident(p, split='train')
 dataset_val   = CausalityInTrafficAccident(p, split='val', test_mode=True)
 dataset_test  = CausalityInTrafficAccident(p, split='test', test_mode=True)

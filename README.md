@@ -5,7 +5,7 @@ Repository for Traffic Accident Benchmark for Causality Recognition (ECCV 2020)
 <img width="480px" src="overview.png">
 
 ## Data Preparation
-[Details of dataset construction](DATASET.md)
+[Details of dataset construction](dataset/DATASET.md)
 
 ## Benchmark
 ### Cause and Effect Event Classification
