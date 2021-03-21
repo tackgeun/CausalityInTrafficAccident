@@ -30,13 +30,13 @@ parser.add_argument('--architecture_type', type=str, default='forward-SST', choi
 #parser.add_argument('--feed_type', type=str, default='detection')
 parser.add_argument('--prediction_type', type=str, default="both")
 
+parser.add_argument('--hidden_size', type=int, default=128)
+parser.add_argument('--loss_type', type=str, default='CrossEntropy')
+
 # Action Detection (SST)
 parser.add_argument('--positive_thres', type=float, default=0.4)
-# parser.add_argument('--num_scales', type=int, default=12)
-# parser.add_argument('--start_scale', type=float, default=3.0)
-# parser.add_argument('--end_scale', type=float, default=32.0)
-parser.add_argument('--sst_rnn_type', type=str, default='GRU')
 parser.add_argument('--sst_K', type=int, default=64)
+#parser.add_argument('--sst_rnn_type', type=str, default='GRU')
 
 # Action Segmentation (SSTCN, MSTCN)
 parser.add_argument('--num_layers', type=int, default=2)
@@ -49,8 +49,8 @@ parser.add_argument('--mse_tau', type=float, default=4.0)
 
 # Optimization
 parser.add_argument("--random_seed", type=int, default=0)
-parser.add_argument('--num_experiments', type=int, default=1)
-parser.add_argument('--num_epochs', type=int, default=200)
+parser.add_argument('--num_experiments', type=int, default=5)
+parser.add_argument('--num_epochs', type=int, default=100)
 
 parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--learning_rate', type=float, default=1e-4)
@@ -59,11 +59,8 @@ parser.add_argument('--use_dropout', type=float, default=0.5)
 parser.add_argument('--optimizer', type=str, default='adam')
 parser.add_argument('--weight_decay', type=float, default=1e-2)
 
-parser.add_argument('--hidden_size', type=int, default=128)
-parser.add_argument('--loss_type', type=str, default='CrossEntropy')
-
 # Logging and Display
-parser.add_argument('--display_period', type=int, default=1)
+parser.add_argument('--display_period', type=int, default=101)
 parser.add_argument('--logdir', type=str, default='runs')
 
 
@@ -105,16 +102,6 @@ dataloader_test = DataLoader(dataset_test, batch_size=p['batch_size'])
 print("train/validation/test dataset size", \
         len(dataset_train), len(dataset_val), len(dataset_test))
 
-# Reproducibility
-if(args.random_seed > 0):
-    torch.manual_seed(args.random_seed)
-    np.random.seed(args.random_seed)
-    random.seed(args.random_seed)
-    torch.cuda.manual_seed(args.random_seed)
-    torch.cuda.manual_seed_all(args.random_seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
 # Logging
 arch_name = p['architecture_type']
 expdir = '%s-%s-batch%d-layer%d-embed-%d' % \
@@ -141,6 +128,15 @@ for key in ['cause-thr-test', 'effect-thr-test', 'cause-thr-val', 'effect-thr-va
 ###################################
 
 for di in range(0, args.num_experiments):
+    # Reproducibility
+    if(args.random_seed > 0):
+        torch.manual_seed(args.random_seed + di)
+        np.random.seed(args.random_seed + di)
+        random.seed(args.random_seed + di)
+        torch.cuda.manual_seed(args.random_seed + di)
+        torch.cuda.manual_seed_all(args.random_seed + di)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False    
     model = []
 
     if('Segmentation' in p['architecture_type']):
@@ -236,44 +232,36 @@ if(p['prediction_type'] == 'both'):
     both_thr_test = (cause_thr_test + effect_thr_test) / 2
 
     if(args.num_experiments > 1):
-        print("cause/effect test max performance mean/std and IoU[0.5:0.9] and IoU>0.5")
-        print("%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (
+        print("cause/effect/both test max performance mean/std @ IoU=0.5")
+        print("%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (
                 float(torch.mean(cause_thr_test[:, 4])),
                 float(torch.std(cause_thr_test[:, 4])),
                 float(torch.mean(effect_thr_test[:, 4])),
                 float(torch.std(effect_thr_test[:, 4])),
                 float(torch.mean(both_thr_test[:, 4])),
                 float(torch.std(both_thr_test[:, 4])),
-                float(torch.mean(cause_thr_test[:, 4:])),
-                float(torch.std(torch.mean(cause_thr_test[:, 4:],dim=1))),
-                float(torch.mean(effect_thr_test[:, 4:])),
-                float(torch.std(torch.mean(effect_thr_test[:, 4:],dim=1))),
-                float(torch.mean(both_thr_test[:, 4:])),
-                float(torch.std(torch.mean(both_thr_test[:, 4:],dim=1))),
             ))
     else:
-        print("cause/effect test max performance mean and IoU[0.5:0.9]")
+        print("cause/effect/both test max performance mean @ IoU=0.5")
         print("%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (
                 float(torch.mean(cause_thr_test[:, 4])),
                 float(torch.mean(effect_thr_test[:, 4])),
                 float(torch.mean(both_thr_test[:, 4])),
-                float(torch.mean(cause_thr_test[:, 4:])),
-                float(torch.mean(effect_thr_test[:, 4:])),
-                float(torch.mean(both_thr_test[:, 4:])),
             ))
 
-    print('All stats w.r.t IoU [0.1:0.9]')
-
+    print('Accuracy of Cause Localization @ IoU=[0.1:0.9]')
     print(torch.mean(cause_thr_test, dim=0))
     if(args.num_experiments > 1):
         print(torch.std(cause_thr_test, dim=0))
     torch.save(cause_thr_test.cpu(), './%s/%s/%d/cause.pth' % (args.logdir, expdir, ei))
 
+    print('Accuracy of Effect Localization @ IoU=[0.1:0.9]')
     print(torch.mean(effect_thr_test, dim=0))
     if(args.num_experiments > 1):
         print(torch.std(effect_thr_test, dim=0))
     torch.save(effect_thr_test.cpu(), './%s/%s/%d/effect.pth' % (args.logdir, expdir, ei))
 
+    print('Accuracy of Mean of Cause and Effect Localization @ IoU=[0.1:0.9]')
     print(torch.mean(both_thr_test, dim=0))
     if(args.num_experiments > 1):
         print(torch.std(both_thr_test, dim=0))

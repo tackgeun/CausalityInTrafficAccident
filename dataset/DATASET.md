@@ -6,12 +6,21 @@ Download two RGB features extracted from [Kinetics-I3D-PyTorch](https://github.c
 - [flipped-RGB](https://www.dropbox.com/s/0kiikl2yjco0xvn/i3d-rgb-flip-fps25-Mar9th.pt?dl=0)
 
 ## Statistics of dataset
-### Semantic Taxonomy for Cause and Effect Events
+### Class Labels of Cause and Effect Events
 <img width="540px" src="../figures/labels.png">
 
-### Temporal Intervals
+### Temporal Intervals of Cause and Effect Events
 <img width="240px" src="../figures/cause_duration.png">
 <img width="240px" src="../figures/effect_duration.png">
+
+## Semantic Taxonomy of Traffic Accident
+We have 17 and 7 semantic labels for cause and effect event correspondingly.
+
+- For cause labels, we adopt semantic taxonomy introduced in [the crash avoidance research](https://rosap.ntl.bts.gov/view/dot/6281). The research introduced a new typology of pre-crash scenario of traffic accident. The typology of pre-crash serves as a semantic taxonomy of cause events in traffic accident. We merge labels *With Prior Vehicle Action* and *Without Prior Vehicle Action* into the same labels because it is hard to be dicriminated by only watching video in many traffic accidents.
+- For effect event, we use 7 semantic labels which frequently appeared in collected videos with traffic accident.
+- The prior distributions of both cause and effect event can be calculated by aggregating ocurrences of individual cause and effect events in the research, which is shown in figure 4 of the paper.
+
+
 
 ## The Other Details
 ### Annotation tool
