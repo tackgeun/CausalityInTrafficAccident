@@ -1,4 +1,4 @@
-# Causality In Traffic Accident (Under Construction)
+# Causality In Traffic Accident
 Repository for Traffic Accident Benchmark for Causality Recognition (ECCV 2020)
 
 ## Overview
@@ -29,7 +29,7 @@ python train_classifier.py --consensus_type linear --random_seed 3
 | Linear  | 31.25       | 37.50       | 87.50        | 93.75        |
 
 
-### Temporal Cause and Effect Event Localization
+### Temporal Cause and Effect Event Localization (Under-Construction)
 We adopt three types of baseline methods in our benchmark.
 
 - Single-stage Action Detection
