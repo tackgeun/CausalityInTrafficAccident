@@ -9,9 +9,12 @@ Download two RGB features extracted from [Kinetics-I3D-PyTorch](https://github.c
 The annotation file in the repository (*dataset/annotation-Mar9th-25fps.pkl*) contains the list for causality annotation each video and its meta information.
 
 * Each element in the list has video meta information and cause and effect event labels.
-- (Youtube clip ID, start time in Youtube clip, end time in Youtube clip) ; traffic accident video information
-- (cause semantic label, cause start time, cause end time, cause semantic label index) ; cause annotation
-- (effect semantic label, effect start time, effect end time, effect semantic label index) ; effect annotation
+  - traffic accident video information
+    + (Youtube clip ID, start time in Youtube clip, end time in Youtube clip)
+  - cause annotation
+    + (cause semantic label, cause start time, cause end time, cause semantic label index)
+  - effect annotation
+    + (effect semantic label, effect start time, effect end time, effect semantic label index)
 
 ## Statistics of dataset
 ### Class Labels of Cause and Effect Events
