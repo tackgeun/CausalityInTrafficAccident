@@ -6,13 +6,12 @@ Download two RGB features extracted from [Kinetics-I3D-PyTorch](https://github.c
 - [download flipped-RGB](https://www.dropbox.com/s/0kiikl2yjco0xvn/i3d-rgb-flip-fps25-Mar9th.pt?dl=0)
 
 ## Annotation format
+The annotation file in the repository (*dataset/annotation-Mar9th-25fps.pkl*) contains the list for causality annotation each video and its meta information.
 
-The annotation file in the repository (*dataset/annotation-Mar9th-25fps.pkl*) contains a list. Each element in the list has video meta information and cause and effect event labels.
-
-> (Youtube clip ID, Start time in Youtube clip, End time in Youtube clip) ; Traffic Accident Video Information
-> (Cause label, Cause start time, Cause end time, Cause label index)
-> (Effect label, Effect start time, Effect end time, Effect label index)
-
+* Each element in the list has video meta information and cause and effect event labels.
+- (Youtube clip ID, start time in Youtube clip, end time in Youtube clip) ; traffic accident video information
+- (cause semantic label, cause start time, cause end time, cause semantic label index) ; cause annotation
+- (effect semantic label, effect start time, effect end time, effect semantic label index) ; effect annotation
 
 ## Statistics of dataset
 ### Class Labels of Cause and Effect Events
