@@ -10,11 +10,13 @@ The annotation file in the repository (*dataset/annotation-Mar9th-25fps.pkl*) co
 
 * Each element in the list has video meta information and cause and effect event labels.
   - traffic accident video information
-    + (Youtube clip ID, start time in Youtube clip, end time in Youtube clip)
+    + (v_Youtube clip ID, start time in Youtube clip, end time in Youtube clip)
   - cause annotation
     + (cause semantic label, cause start time, cause end time, cause semantic label index)
   - effect annotation
     + (effect semantic label, effect start time, effect end time, effect semantic label index)
+
+Note that removing the prefix *v_* to search a video on youtube and all time stamps are written in seconds.
 
 ## Statistics of dataset
 ### Class Labels of Cause and Effect Events
