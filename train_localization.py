@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser(description='Training Framework for Temporal Ca
 
 # Dataloader
 parser.add_argument('--dataset_ver', type=str, default='Mar9th')
-parser.add_argument('--use_flip', type=bool, default=True)
+parser.add_argument('--use_flip', type=bool, default=False)
 parser.add_argument('--feature', type=str, default="i3d-rgb-x8")
 parser.add_argument('--input_size', type=int, default=1024)
 
@@ -39,7 +39,7 @@ parser.add_argument('--sst_K', type=int, default=64)
 #parser.add_argument('--sst_rnn_type', type=str, default='GRU')
 
 # Action Segmentation (SSTCN, MSTCN)
-parser.add_argument('--num_layers', type=int, default=2)
+parser.add_argument('--num_layers', type=int, default=3)
 parser.add_argument('--num_stages', type=int, default=2)
 parser.add_argument('--w1', type=float, default=1.0)
 parser.add_argument('--w2', type=float, default=1.0)
@@ -48,9 +48,9 @@ parser.add_argument('--w4', type=float, default=1.0)
 parser.add_argument('--mse_tau', type=float, default=4.0)
 
 # Optimization
-parser.add_argument("--random_seed", type=int, default=0)
-parser.add_argument('--num_experiments', type=int, default=5)
-parser.add_argument('--num_epochs', type=int, default=100)
+parser.add_argument("--random_seed", type=int, default=7802)
+parser.add_argument('--num_experiments', type=int, default=1)
+parser.add_argument('--num_epochs', type=int, default=200)
 
 parser.add_argument('--batch_size', type=int, default=16)
 parser.add_argument('--learning_rate', type=float, default=1e-4)
@@ -143,6 +143,7 @@ for di in range(0, args.num_experiments):
         if('SSTCN' in p['architecture_type']):
             model = SSTCN(p)
         elif('MSTCN' in p['architecture_type']):
+            p['mstcn_stage_config'] = [args.num_layers for i in range(0, args.num_stages)]
             model = MSTCN(p)        
     elif('SST' in p['architecture_type']):
         if('SSTCN' in p['architecture_type']):
@@ -243,7 +244,7 @@ if(p['prediction_type'] == 'both'):
             ))
     else:
         print("cause/effect/both test max performance mean @ IoU=0.5")
-        print("%.4f\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (
+        print("%.4f\t%.4f\t%.4f" % (
                 float(torch.mean(cause_thr_test[:, 4])),
                 float(torch.mean(effect_thr_test[:, 4])),
                 float(torch.mean(both_thr_test[:, 4])),

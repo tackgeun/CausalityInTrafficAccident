@@ -83,7 +83,7 @@ class TSN(nn.Module):
     def loss(self, logits, labels):
         if(self.consensus_type == 'average'):
             loss_cause = F.nll_loss(logits[0], labels[0])
-            loss_effect = F.nll_loss(logits[0], labels[0])
+            loss_effect = F.nll_loss(logits[1], labels[1])
         elif(self.consensus_type == 'linear'):
             loss_cause  = F.cross_entropy(logits[0], labels[0])
             loss_effect = F.cross_entropy(logits[1], labels[1])
@@ -368,3 +368,30 @@ class MSTCN(nn.Module):
         logits = self.layers.forward(inputs)
 
         return logits      
+
+
+################################################################
+# IRM
+################################################################
+
+class TSN_IRM(TSN):
+    def __init__(self, p, dataset, irm_source, irm_target):
+        super(TSN, self).__init__(p, dataset)
+        self.irm_source = irm_source
+        self.irm_target = irm_target
+
+    def loss(self, logits, labels):
+        logit_s = logits[0]
+        logit_t = logits[1]
+        if(self.consensus_type == 'average'):
+            loss_cause = F.nll_loss(logits_s, labels[0])
+            loss_effect = F.nll_loss(logits_t, labels[1])
+        elif(self.consensus_type == 'linear'):
+            loss_cause  = F.cross_entropy(logits_s, labels[0])
+            loss_effect = F.cross_entropy(logits_t, labels[1])
+        
+def penalty(logits, y, criterion_fun, inv_val=1.0):
+    scale = torch.tensor(inv_val).cuda().requires_grad_()
+    loss = criterion_fun(logits * scale, y)
+    grad = autograd.grad(loss, [scale], create_graph=True)[0]
+    return torch.sum(grad ** 2)

@@ -54,7 +54,8 @@ def process_epoch(phase, _epoch, p, _dataloader, _model, _optim=None):
     top2_c = AverageMeter()
     top1_e = AverageMeter()
     top2_e = AverageMeter()
-
+    top1_all = AverageMeter()
+    
     if(phase == 'train'):
         _model.train()
     elif(phase == 'val'):

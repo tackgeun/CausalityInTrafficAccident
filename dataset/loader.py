@@ -249,8 +249,9 @@ class CausalityInTrafficAccident(Dataset):
         cause_loc = torch.Tensor([annos[1][1], annos[1][2]])
         effect_loc = torch.Tensor([annos[2][1], annos[2][2]])
 
-        cause_loc = cause_loc / annos[3]
-        effect_loc = effect_loc / annos[3]
+        vid_length = (annos[0][2] - annos[0][1])
+        cause_loc = cause_loc / vid_length
+        effect_loc = effect_loc / vid_length
 
         iou_cause = self.compute_ious(self.boxes, annos[1][1:3])
         iou_effect = self.compute_ious(self.boxes, annos[2][1:3])
